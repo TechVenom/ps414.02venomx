@@ -2,7 +2,7 @@
 
 # ps414.02venomx
 
-<img src="includes/assets/icons/webkitty.svg" width="220" alt="WebKitty Logo">
+<img src="includes/assets/icons/ps4-venomx.svg" width="240" alt="PS4 VenomX Logo">
 
 **A WebKitty fork for PlayStation 4 firmware 14.02 — Slopkit userland with the Afterglow kernel exploit.**
 
