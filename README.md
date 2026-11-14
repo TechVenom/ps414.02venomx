@@ -1,90 +1,190 @@
 <div align="center">
 
-# WebKitty
+# ps414.02venomx
 
 <img src="includes/assets/icons/webkitty.svg" width="220" alt="WebKitty Logo">
 
-**A modular collection of WebKit-based exploit chains for the PlayStation 4.**
+**A WebKitty fork for PlayStation 4 firmware 14.02 — Slopkit userland with the Afterglow kernel exploit.**
 
-*(Formerly known as PSFree Enhanced)*
+Based on [WebKitty](https://github.com/ArabPixel/WebKitty) by ArabPixel.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![GitHub issues](https://img.shields.io/github/issues/ArabPixel/WebKitty)](https://github.com/ArabPixel/WebKitty/issues)
-[![GitHub stars](https://img.shields.io/github/stars/ArabPixel/WebKitty)](https://github.com/ArabPixel/WebKitty/stargazers)
 
-[Features](#features) • [Firmware Compatibility](#supported-by-this-repository) • [Deployment](#deployment--hosting) • [Screenshots](#screenshots) • [Contributing](#contribution) • [Credits](#credits)
+[What runs](#what-runs-on-1402) • [Firmware](#supported-firmware) • [How to run](#how-to-run) • [Payloads](#payloads-and-ports) • [Troubleshooting](#troubleshooting) • [Credits](#credits)
 
 </div>
 
 ---
 
-## Features
+## What runs on 14.02
 
-### Core Exploit & Execution
-- **Auto-detection:** Automatically detects console type and firmware version.
-- **WebKit Exploits:** Entry point via the console's web browser using **PSFree**, **Bad Hoist**, **CSSFontFace** or **slopkit**.
-- **Kernel Exploits:** Escalates privileges to kernel level using **Lapse**, **Netctrl**, **Relapse**, or **Sleirsgoevy's 6.7x**.
-- **Payload Loader:** After successful kernel exploitation, payloads or listens for incoming payloads on port `9020`.
-- **Barebone Jailbreak Experience option:** Executes the exploit in a minimal DOM footprint and automatically redirects back to the main page upon completion.
-- **Firmware-Based Caching:** Caches *only* what your specific firmware version requires instead of caching everything offline.
+This fork exists because firmware 14.00/14.02 needs its own kernel stage. The chain is:
 
-### Interface & Customization
-- **Themes & Layouts:** Customizable layout modes with independent theme options.
-- **HEN Flavor Selector:** Toggle between **HEN** and **GoldHEN**, with integrated GoldHEN version selection.
-- **Descriptive Payload Selection:** Clear descriptions and unsupported payload loading protection.
-- **Multilingual Support:** Dynamic language switcher.
+| Stage | Implementation | Source |
+| :--- | :--- | :--- |
+| WebKit / userland | **Slopkit** — a JavaScript UAF turned into arbitrary read/write (`window.p`) in the WebProcess | `src/slopkit-afterglow/core.js`, `mem.js` |
+| Kernel | **Afterglow** — self-contained kernel stage that patches the kernel and opens an `rwx` / kexec gate | `src/slopkit-afterglow/afterglow.js`, `ps4_offsets.js` |
+| Payload | **GoldHEN** 2.4b18.14 (default) or 2.4b18.13, injected as a `.bin` | `includes/payloads/HEN/` |
 
-### Advanced Local & Network Features
-Offers expanded functionality when hosted locally on a PC or PS4 using **[PS4-Websrv](https://github.com/ArabPixel/ps4-websrv)**:
-- **Network Scanner:** Ability to scan the local network to find the PS4.
-- **Remote Payload Delivery:** Send the available or custom payloads from any smart device directly to the PS4.
+How it behaves:
+
+- The host detects the console and preselects **Slopkit Afterglow** for 14.00–14.02. Do not change the chain on 14.02 — the WebKit stage would run, then the kernel stage would refuse (or patch the wrong kernel).
+- Afterglow is the kernel exploit itself, not a prelude to another one. It does not use the host's kernel offset table and does not chain into Lapse/Netctrl/Relapse.
+- The WebKit stage is retried inside a single run (8 attempts by default; roughly one attempt in three lands). A 45-second watchdog shows a retry notice if the stage stalls.
+- If the PS4 browser restores the exploit page by itself, the page refuses to run and sends you back to the landing page. Arming requires a click from the index page.
+
+### 14.02 limitations
+
+- **GoldHEN versions:** on 14.02 only **2.4b18.13** and **2.4b18.14** are accepted. Older versions are refused. On 14.00 the selector offers 2.4b18.14 and 2.4b18.12.
+- **Elf Loader is not supported on 14.02.** `elfldr` is listed for 4.71–14.00 only (`includes/js/payloadsList.js`), so `.elf` payloads and port 9021 are unavailable here. Use `.bin` payloads through GoldHEN's binloader.
 
 ---
 
-## Supported by this Repository
+## Supported firmware
 
-This table indicates firmware versions for which the *current version* of this repository provides a functional and tested exploit chain.
-
-| Userland | Kernel | Firmware |
+| WebKit / Userland | Kernel | Firmware |
 | :--- | :---: | :--- |
-| **Have A Bad Time & <br> Stack Unitialized Read** | Bpf Double Free | 4.50 - 5.07 |
-| **Bad Hoist** | sleirsgoevy's kexploit | 6.70 - 6.72 |
-| **PSFree** | Lapse | 7.00 - 9.60 |
-| **CSSFontFace** | Lapse | 7.00 - 11.02 |
-| **CSSFontFace** | Netctrl | 9.00 - 11.02 |
-| **Slopkit**     | Lapse  |  10.00 - 12.02 |
-| **Slopkit**     | Netctrl  |  12.50 - 13.00 |
-| **Slopkit**     | Relapse  |  12.50 - 13.52 |
-| **Slopkit**     | Afterglow  |  14.02 |
-| **Payload Loader** | - | 5.05 - latest |
+| Have A Bad Time & Stack Uninitialized Read | Bpf Double Free | 4.50 – 5.07 |
+| Bad Hoist | sleirsgoevy's kexploit | 6.70 – 6.72 |
+| PSFree | Lapse | 7.00 – 9.60 |
+| CSSFontFace | Lapse | 7.00 – 11.02 |
+| CSSFontFace | Netctrl | 9.00 – 11.02 |
+| Slopkit | Lapse | 10.00 – 12.02 |
+| Slopkit | Netctrl | 12.50 – 13.00 |
+| Slopkit | Relapse | 12.50 – 13.52 |
+| **Slopkit** | **Afterglow** | **14.00 – 14.02** |
+
+The other chains are inherited from WebKitty and are not the focus of this build. On 14.02 only Slopkit Afterglow is valid.
 
 ---
 
-## Deployment & Hosting
+## How to run
 
-### Option 1: Access via Remote Host
-Open the PS4 web browser and navigate directly http://webkitty.arabpixel.net/
-> In case the above link can not be resolved or similarly, you may want to attempt to use the following mirror of WebKitty: arabpixel.gitlab.io/WebKitty
+### 1. Serve this folder from your computer
 
-### Option 2: Local Hosting (PC / PS4 Server)
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ArabPixel/WebKitty.git
-   ```
-2. Serve the directory using any standard Web server (e.g., Nginx, Apache, Python HTTP server, or **[PS4-Websrv](https://github.com/ArabPixel/ps4-websrv)**).
-3. Open the browser on your PS4, that's it!
+You need Python 3, and the PS4 and computer must be on the same LAN.
+
+```bash
+git clone https://github.com/TechVenom/ps414.02venomx.git
+cd ps414.02venomx
+sh serve.sh
+```
+
+`serve.sh` listens on port `8001` and prints the address to use:
+
+```
+webkitty (local) on http://192.168.x.x:8001/  (ctrl-c to stop)
+```
+
+Use a different port with:
+
+```bash
+PORT=8080 sh serve.sh
+```
+
+Use `serve.sh` rather than `python3 -m http.server`. The PS4 browser needs:
+
+- `.manifest` served as `text/cache-manifest` (AppCache),
+- `.bin` / `.elf` served as `application/octet-stream`,
+- `no-store` on code, so a corrected file is never served from cache.
+
+If your checkout does not have the executable bit, `sh serve.sh` works as-is. `./serve.sh` works only after `chmod +x serve.sh`.
+
+### 2. Open the host on the PS4
+
+1. Open the PS4 **Browser** and go to `http://<computer-lan-ip>:8001/` — use `http`, not `https`.
+2. The firmware line should turn green and show `14.0x`.
+3. Choose **GoldHEN** as the HEN flavor.
+4. Choose GoldHEN **2.4b18.14** (or **2.4b18.13**). The selector refuses older versions on 14.02.
+5. Leave **Exploit Chain** on **Slopkit Afterglow**. It is selected automatically for 14.00/14.02.
+
+Optional settings on the same screen:
+
+- **Update Cache** — caches the 14.0x manifest (`includes/caches/manifest/140x.manifest`) for faster/offline reloads.
+- **Auto Jailbreak** — starts the chain after a short countdown.
+- **Auto-Retry Jailbreak** — retries after an unsuccessful attempt.
+- **Barebone Jailbreak Experience** — runs the chain in `exploit.html` with a minimal DOM and returns to the index afterwards.
+- **Reload After a successful Jailbreak** — reloads the page once the chain reports success.
+
+### 3. Run the exploit
+
+Press the play button in the **Exploit** panel (or let Auto Jailbreak start it). Keep the page open while the log runs.
+
+A successful run ends with the jailbreak-success message, and — when GoldHEN is injected — GoldHEN's own notification. The page can then be closed or reloaded according to your settings.
+
+### 4. Load payloads
+
+After GoldHEN is running:
+
+- The payload grid sends `.bin` payloads to GoldHEN's binloader on **port 9090**.
+- **Do not use `.elf` payloads or the Elf Loader on 14.02** (see the limitations above).
+- To send payloads from a phone or another computer, open the same host URL on that device. Local-server mode shows the PS4 IP field and firmware selector; enter the PS4's LAN IP, pick 14.02, and use the payload grid.
+
+### 5. If the run fails
+
+- **Failure before the kernel stage** costs nothing — reopen the browser and run again. Within a run the host already retries the WebKit stage.
+- **If the log shows the kernel stage was entered and then failed**, reboot the console before trying again. Do not just reload.
+- **If the console becomes unresponsive**, power-cycle it and start over.
 
 ---
 
-## TODO List
-- [ ] Support lower firmwares by adding other exploits
+## Payloads and ports
+
+| Service | Port | Works on 14.02 |
+| :--- | :---: | :--- |
+| GoldHEN binloader (`.bin`) | **9090** | Yes — use this |
+| Elf Loader `elfldr` (`.elf`) | 9021 | No — limited to 14.00 and below |
+| Legacy chain binloader | 9020 | No — belongs to the PSFree/BPF chains |
+
+The `9020` listener referenced by older WebKitty documentation is the legacy in-chain binloader. It is not the payload path used by Afterglow on 14.02.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+| :--- | :--- |
+| Page does not load on the PS4 | Use `http://<lan-ip>:8001/`, not `https`; check both devices are on the same subnet and the computer firewall allows the port. |
+| Firmware line is orange/red or says unsupported | This build only has a stage for 14.00/14.02. Make sure you are in the PS4 browser, not a desktop browser. |
+| `Update Cache` hangs or fails | Serve through `serve.sh`; a plain static server sends `.manifest` as `application/octet-stream` and AppCache refuses it. |
+| Exploit fails or the page stalls | Reopen the browser and run again; the WebKit stage is probabilistic and already retries. After a kernel-stage failure, reboot. |
+| Elf Loader / `.elf` payload does nothing | Expected on 14.02 — use `.bin` payloads through GoldHEN on 9090. |
+| Redirected back to the index page | The browser restored the exploit page without a landing-page click; the guard refuses to run unattended. Start again from the index. |
+
+---
+
+## Repository layout
+
+```
+index.html                  Host UI
+exploit.html                Minimal "Barebone" runner
+serve.sh                    LAN host with the MIME types the PS4 browser expects
+includes/js/                Host logic (firmware detection, chains, payloads, cache)
+includes/payloads/          GoldHEN, bin and elf payloads
+includes/caches/            Per-firmware AppCache pages and manifests
+src/slopkit-afterglow/      Slopkit + Afterglow chain used by 14.00–14.02
+src/kpatches/               Per-firmware GoldHEN patch sets
+```
+
+---
+
+## Building the legacy bundle
+
+`includes/js/jailbreak-legacy.js` is generated from `includes/js/jailbreak.js`:
+
+```bash
+npm install
+npm run build
+```
+
+If you add a file that the 14.0x chain needs, add it to `includes/caches/manifest/140x.manifest` as well.
 
 ---
 
 ## Screenshots
 
 <details>
-<summary><b>📸 Click here to view Screenshots & Previews</b></summary>
+<summary><b>Click here to view Screenshots & Previews</b></summary>
 <br>
 
 <table align="center" style="border: none;">
@@ -156,45 +256,40 @@ Open the PS4 web browser and navigate directly http://webkitty.arabpixel.net/
 
 ## Contribution
 
-You can contribute to WebKitty by:
-- Creating pull requests for new translations in the [`languages` folder](includes/js/languages).
-- Modifying, updating, or implementing new host features.
-- Reporting bugs or suggesting enhancements via [issues](https://github.com/ArabPixel/WebKitty/issues/new).
-- In case your PR has edits inside `jailbreak.js` file, do not forget to generate `jailbreak-legacy.js` by typing
-```
-npm install # in case you didn't install them already.
-npm run build
-```
-
-> **Important:** If your PR includes a new file, don't forget to add it to the respective firmware-based manifest files!
+- Translations live in [`includes/js/languages`](includes/js/languages).
+- New or modified host features belong in `includes/js`.
+- If your PR edits `includes/js/jailbreak.js`, regenerate `jailbreak-legacy.js` with `npm install && npm run build`.
+- If your PR adds a file used by a chain, add it to the matching `includes/caches/manifest/*.manifest`.
+- Report bugs via [issues](https://github.com/TechVenom/ps414.02venomx/issues).
 
 ---
 
-## Copyright and Authors
+## Credits
 
-AGPL-3.0-or-later (see [LICENSE](LICENSE)). Part of this repo belongs to the group `anonymous`. We refer to anonymous contributors as "anonymous" as well.
+- **abc** — PSFree userland and Lapse kernel exploits.
+- **Al-Azif** — modular PSFree Lapse and AIO workaround implementations.
+- **anonymous** — PS4 firmware kernel dumps.
+- **Dr.Yenyen** — intensive multi-firmware testing.
+- **Egycnq** — porting Netctrl to Slopkit.
+- **Feyzee61** — PSFree Lapse bundle and 6.7x exploit implementations.
+- **Fire30** — Bad Hoist userland exploit.
+- **GattoDev** — WebKitty logo.
+- **Jordy and Sonic-Iso** — original Slopkit project.
+- **Nathan Fargo and ufm42** — CSSFontFace userland exploit.
+- **Payload developers** — their payloads.
+- **Nazky** — first host I took a peek at.
+- **qwertyoruiopz** — BPF double free.
+- **Raw Game** — PS4 port of Slopkit Lapse/Netctrl and Slopkit Relapse.
+- **sleirsgoevy** — 6.7x kernel exploit.
+- **TheFlow** — Netctrl kernel exploit.
+- **ufm42** — CSSFontFace Netctrl and Lapse implementations.
+- **m0zz** — Slopkit Afterglow source.
+- **ArabPixel** — WebKitty, which this fork is built on.
+
+Check the appropriate files for any **extra** contributors.
 
 ---
 
-## Credits in no particular order
-- **abc:** For PSFree userland and Lapse kernel exploits.
-- **Al-Azif:** For the modular (multi-file) PSFree Lapse and AIO workaround implementations.
-- **anonymous:** For PS4 firmware kernel dumps.
-- **Dr.Yenyen:** For intensive multi-firmware testing.
-- **Egycnq:** Porting Netctrl to slopkit.
-- **Feyzee61:** For the PSFree lapse bundle (single file) and 6.7x exploit implementations.
-- **Fire30:** For Bad Hoist userland exploit.
-- **GattoDev:** For the WebKitty logo.
-- **Jordy and Sonic-Iso:** Original Slopkit project.
-- **Nathan Fargo and ufm42:** For CSSFontFace userland exploit.
-- **Payload developers:** For their payloads.
-- **Nazky:** For being the first host I took a peek at.
-- **qwertyoruiopz:** for BPF Double Free
-- **Raw Game:** For implementing a PS4 port for the Slopkit Lapse and Netctrl and also SlopKit Relapse.
-- **sleirsgoevy:** For 6.7x kernel exploit. 
-- **TheFlow:** For Netctrl kernel exploit.
-- **ufm42:** For CSSFontFace Netctrl and Lapse implementation.
-- **m0zz:** For slopkit afterglow source
+## License
 
-Check the appropriate files for any **extra** contributors. Unless otherwise stated, everything here can also be credited to us.
-# ps414.02venomx
+AGPL-3.0-or-later (see [LICENSE](LICENSE)). Parts of this repository belong to the group `anonymous`; anonymous contributors are referred to as "anonymous" as well.
