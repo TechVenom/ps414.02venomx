@@ -49,7 +49,10 @@
         var isThisPS4 = navigator.userAgent.indexOf("PlayStation 4") !== -1;
         var isLocalServer =  /^(127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(window.location.hostname);
         var isCurrentHTTPS = window.location.protocol === 'https:';
-        if (isThisPS4 && goToHttps && !isLocalServer && isCurrentHTTPS){
+        // Pages is HTTPS-only and the 14.0x chain injects its payload in-process,
+        // so there is no binloader to switch to http for.
+        var isGitHubPages = /\.github\.io$/.test(window.location.hostname);
+        if (isThisPS4 && goToHttps && !isLocalServer && !isGitHubPages && isCurrentHTTPS){
             if (confirm("You are currently using HTTPS, which prevents loading payloads through a bin/elf loader servers, switch to http instead? (recommended)")){
                 window.abortLoading = true;
                 window.location.href = "http://webkitty.arabpixel.net";
