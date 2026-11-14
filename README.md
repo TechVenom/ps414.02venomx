@@ -70,10 +70,10 @@ cd ps414.02venomx
 sh serve.sh
 ```
 
-`serve.sh` listens on port `8001` and prints the address to use:
+`serve.sh` listens on port `8000` and prints the address to use:
 
 ```
-webkitty (local) on http://192.168.x.x:8001/  (ctrl-c to stop)
+webkitty (local) on http://192.168.x.x:8000/  (ctrl-c to stop)
 ```
 
 Use a different port with:
@@ -92,7 +92,7 @@ If your checkout does not have the executable bit, `sh serve.sh` works as-is. `.
 
 ### 2. Open the host on the PS4
 
-1. Open the PS4 **Browser** and go to `http://<computer-lan-ip>:8001/` — use `http`, not `https`.
+1. Open the PS4 **Browser** and go to `http://<computer-lan-ip>:8000/` — use `http`, not `https`.
 2. The firmware line should turn green and show `14.0x`.
 3. Choose **GoldHEN** as the HEN flavor.
 4. Choose GoldHEN **2.4b18.14** (or **2.4b18.13**). The selector refuses older versions on 14.02.
@@ -144,7 +144,7 @@ The `9020` listener referenced by older WebKitty documentation is the legacy in-
 
 | Symptom | Cause / fix |
 | :--- | :--- |
-| Page does not load on the PS4 | Use `http://<lan-ip>:8001/`, not `https`; check both devices are on the same subnet and the computer firewall allows the port. |
+| Page does not load on the PS4 | Use `http://<lan-ip>:8000/`, not `https`; check both devices are on the same subnet and the computer firewall allows the port. |
 | Firmware line is orange/red or says unsupported | This build only has a stage for 14.00/14.02. Make sure you are in the PS4 browser, not a desktop browser. |
 | `Update Cache` hangs or fails | Serve through `serve.sh`; a plain static server sends `.manifest` as `application/octet-stream` and AppCache refuses it. |
 | Exploit fails or the page stalls | Reopen the browser and run again; the WebKit stage is probabilistic and already retries. After a kernel-stage failure, reboot. |

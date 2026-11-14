@@ -1,7 +1,7 @@
 #!/bin/sh
 # Serve this copy of the WebKitty host to the console.
 #
-#   ./serve.sh                      # port 8001
+#   ./serve.sh                      # port 8000
 #   PORT=8080 ./serve.sh
 #
 # Differences from a plain `python3 -m http.server`:
@@ -13,7 +13,7 @@
 set -eu
 
 cd "$(dirname "$0")"
-PORT="${PORT:-8001}"
+PORT="${PORT:-8000}"
 
 exec python3 - "$PORT" <<'PY'
 import socket
