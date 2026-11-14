@@ -90,6 +90,14 @@ Use `serve.sh` rather than `python3 -m http.server`. The PS4 browser needs:
 
 If your checkout does not have the executable bit, `sh serve.sh` works as-is. `./serve.sh` works only after `chmod +x serve.sh`.
 
+### Hosted copy (no computer needed)
+
+The same tree is published from this repository by GitHub Pages:
+
+**https://techvenom.github.io/ps414.02venomx/**
+
+Open that in the PS4 browser and follow the same steps. The 14.0x chain fetches GoldHEN from the same origin and injects it in-process, so no LAN server is involved. The page is HTTPS-only: extra payloads that talk to GoldHEN's binloader on port `9090` may be blocked as mixed content there, so use the `serve.sh` host for those.
+
 ### 2. Open the host on the PS4
 
 1. Open the PS4 **Browser** and go to `http://<computer-lan-ip>:8000/` — use `http`, not `https`.
